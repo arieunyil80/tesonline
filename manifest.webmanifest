@@ -1,0 +1,14 @@
+{
+  "name": "Tes Online TKJ",
+  "short_name": "Tes Online",
+  "description": "Portal ujian online berbasis komputer (CBT)",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#EFE8DC",
+  "theme_color": "#0F5561",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
