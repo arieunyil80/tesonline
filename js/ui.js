@@ -168,7 +168,7 @@ const UI = {
       'Berjalan': 'ok dot-p', 'Mengerjakan': 'ok dot-p', 'Live': 'ok dot-p', 'Selesai': 'tl', 'Menunggu Koreksi': 'warn', 'Terkunci': 'solid-bad', 'Dihentikan': 'bad',
       'Belum Mulai': '', 'Tidak Hadir': 'bad', 'Terjadwal': 'sand', 'Draf': '', 'Aktif': 'ok', 'Terpakai': 'tl', 'Nonaktif': '', 'Hangus': '', 'Diblokir': 'bad',
       'Hadir': 'ok', 'Izin': 'sand', 'Sakit': 'warn', 'Belum Dicatat': '', 'Wajar': 'ok', 'Mencurigakan': 'warn', 'Dugaan Tempel': 'bad', 'Kosong': '',
-      'Lulus': 'ok', 'Tuntas': 'ok', 'Remedial': 'bad', 'Tidak Lulus': 'bad', 'PG': 'teal', 'Esai': 'plum', 'Admin': 'teal', 'Guru': 'tl', 'Tidak Ikut': ''
+      'Sementara': 'sand', 'Lulus': 'ok', 'Tuntas': 'ok', 'Remedial': 'bad', 'Tidak Lulus': 'bad', 'PG': 'teal', 'Esai': 'plum', 'Admin': 'teal', 'Guru': 'tl', 'Tidak Ikut': ''
     };
     const k = m[s] === undefined ? '' : m[s], pulse = k.indexOf('dot-p') >= 0;
     const ik = s === 'Terkunci' ? ikon('kunci', 12) : (s === 'Hangus' ? '' : '');

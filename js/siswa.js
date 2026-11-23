@@ -15,6 +15,8 @@ const Siswa = {
     if (now > new Date(u.akhir).getTime()) return { label: 'Ditutup', kelas: '', tutup: true };
     return { label: 'LIVE', kelas: 'ok', buka: true };
   },
+  /** Lencana nilai: nilai sementara (esai belum dikoreksi semua) tidak diberi Lulus/Remedial */
+  lencana(r) { return r.sementara ? UI.status('Sementara') : UI.status(r.lulus ? 'Lulus' : 'Remedial'); },
   tombolUjian(u, st, besar) {
     const k = besar ? 'btn lg' : 'btn primary';
     if (st.jalan) return '<a class="' + k + '" href="#/s/kerjakan">' + ikon('main') + 'Lanjutkan Ujian</a>';
@@ -36,7 +38,7 @@ App.daftar('s/beranda', { peran: 'siswa', judul: 'Dashboard', render(el) {
       st.belum ? 'Ujian "' + u.nama + '" dibuka ' + F.tglP(u.buka) + ' pukul ' + F.jam(u.buka) + '.' : st.selesai ? 'Ujian "' + u.nama + '" sudah Anda selesaikan. Terima kasih!' : 'Waktu ujian "' + u.nama + '" sudah ditutup.';
     const sisaKartu = u && st.jalan ? '<div class="float"><div class="ik">' + ikon('pasir', 20) + '</div><div class="grow"><div class="over">Sisa waktu ujian</div><div class="v" id="hero-sisa">--:--</div><div class="small muted">' + esc(u.nama) + '</div></div></div>'
       : u ? '<div class="float"><div class="ik">' + ikon('jam', 20) + '</div><div class="grow"><div class="over">' + (st.belum ? 'Dibuka' : 'Durasi ujian') + '</div><div class="v">' + (st.belum ? F.jam(u.buka) : u.durasi + ' mnt') + '</div><div class="small muted">' + esc(u.mapel) + '</div></div></div>' : '';
-    const skorKartu = terakhir ? '<div class="float"><div class="ik" style="background:var(--sand-l);color:#7A5527">' + ikon('medali', 20) + '</div><div class="grow"><div class="over">Skor terakhir</div><div class="row gap-s"><span class="v">' + F.n(terakhir.nilai) + '</span>' + UI.status(terakhir.lulus ? 'Lulus' : 'Remedial') + '</div><div class="small muted">' + esc(terakhir.mapel) + '</div></div></div>' : '';
+    const skorKartu = terakhir ? '<div class="float"><div class="ik" style="background:var(--sand-l);color:#7A5527">' + ikon('medali', 20) + '</div><div class="grow"><div class="over">Skor terakhir</div><div class="row gap-s"><span class="v">' + F.n(terakhir.nilai) + '</span>' + Siswa.lencana(terakhir) + '</div><div class="small muted">' + esc(terakhir.mapel) + '</div></div></div>' : '';
     const nilaiTren = d.riwayat.filter(r => r.nilai !== null);
     el.innerHTML =
       '<section class="hero"><div style="position:relative;z-index:1"><span class="tag">' + esc((App.pub.SEMESTER || '') + ' ' + (App.pub.TAHUN_AJARAN || '')) + '</span>' +
@@ -90,7 +92,7 @@ App.daftar('s/ujian', { peran: 'siswa', judul: 'Daftar Ujian', render(el, q) {
         : UI.kosong({ ikon: 'kalender', judul: 'Tidak ada ujian mendatang' });
     } else {
       isi = d.riwayat.length ? '<div class="grid g3">' + d.riwayat.slice().reverse().map(r => '<div class="card exam-card"><div class="row between"><span class="over">' + esc(r.mapel) + '</span>' + UI.status(r.status) + '</div><h3>' + esc(r.paket) + '</h3><div class="small muted">' + F.tglJam(r.selesai) + '</div>' +
-        '<div class="row between mt-s"><span class="small muted">' + (r.nilai === null ? (d.tampilNilai ? 'Menunggu koreksi guru' : 'Nilai disembunyikan') : 'Nilai akhir') + '</span>' + (r.nilai !== null ? '<span class="chip"><span class="mono" style="font-size:18px">' + F.n(r.nilai) + '</span>' + UI.status(r.lulus ? 'Lulus' : 'Remedial') + '</span>' : '') + '</div></div>').join('') + '</div>'
+        '<div class="row between mt-s"><span class="small muted">' + (r.nilai === null ? (d.tampilNilai ? 'Menunggu koreksi guru' : 'Nilai disembunyikan') : r.sementara ? 'Nilai akhir sementara' : 'Nilai akhir') + '</span>' + (r.nilai !== null ? '<span class="chip"><span class="mono" style="font-size:18px">' + F.n(r.nilai) + '</span>' + Siswa.lencana(r) + '</span>' : '') + '</div></div>').join('') + '</div>'
         : UI.kosong({ ikon: 'medali', judul: 'Belum ada ujian yang selesai' });
     }
     el.innerHTML = '<div class="page-h"><div><div class="over">Jadwal terdaftar</div><h1>Daftar Ujian</h1></div><div class="seg">' +
@@ -172,20 +174,20 @@ App.daftar('s/hasil', { peran: 'siswa', judul: 'Hasil Ujian', render(el) {
     if (!h) utama = UI.kosong({ ikon: 'medali', judul: 'Belum ada hasil', teks: 'Hasil tampil setelah Anda mengirim jawaban.', tombol: '<a class="btn primary" href="#/s/ujian">Ke Daftar Ujian</a>' });
     else if (h.tersembunyi) utama = '<div class="card tc"><div class="lock-screen" style="margin:auto"><div class="big teal">' + ikon('cekb', 38) + '</div><h2>Jawaban terkirim</h2><p class="muted">Nilai tidak ditampilkan oleh pengaturan sekolah. Hasil akan diumumkan oleh guru.</p></div></div>';
     else {
-      const v = h.nilaiAkhir, pct = v === null ? 0 : Math.max(0, Math.min(100, v)), C = 2 * Math.PI * 64;
+      const v = h.nilaiAkhir, pct = v === null ? 0 : Math.max(0, Math.min(100, v)), C = 2 * Math.PI * 64, smt = !!h.menunggu;
       utama = '<div class="card"><div class="row wrap gap-l top"><svg viewBox="0 0 160 160" width="170" height="170" style="flex:none"><circle cx="80" cy="80" r="64" fill="none" stroke="#E6DECF" stroke-width="14"/>' +
-        '<circle cx="80" cy="80" r="64" fill="none" stroke="' + (h.lulus === false ? '#B93A32' : '#0F5561') + '" stroke-width="14" stroke-linecap="round" stroke-dasharray="' + (pct / 100 * C) + ' ' + C + '" transform="rotate(-90 80 80)"/>' +
+        '<circle cx="80" cy="80" r="64" fill="none" stroke="' + (smt ? '#9A6B33' : h.lulus === false ? '#B93A32' : '#0F5561') + '" stroke-width="14" stroke-linecap="round" stroke-dasharray="' + (pct / 100 * C) + ' ' + C + '" transform="rotate(-90 80 80)"/>' +
         '<text x="80" y="' + (v === null ? 86 : 88) + '" text-anchor="middle" style="font-family:JetBrains Mono,monospace;font-size:' + (v === null ? 16 : 34) + 'px;font-weight:700;fill:#23302F">' + (v === null ? 'Menunggu' : F.n(v)) + '</text>' +
-        '<text x="80" y="110" text-anchor="middle" style="font-size:9px;letter-spacing:.1em;fill:#6F6A5F">' + (v === null ? 'KOREKSI ESAI' : 'NILAI AKHIR') + '</text></svg>' +
-        '<div class="grow col"><div><div class="over">' + esc(h.paket) + '</div><h2 class="mt-s">' + (v === null ? 'Menunggu koreksi guru' : h.lulus ? 'Selamat, Anda lulus!' : 'Belum mencapai KKM') + '</h2>' +
-        '<p class="muted">' + (v === null ? 'Nilai pilihan ganda sudah dihitung. Nilai akhir final setelah jawaban esai dikoreksi.' : 'KKM ' + h.kkm + ' · Diselesaikan ' + F.tglJam(h.selesai)) + '</p></div>' +
-        '<div class="row wrap">' + (v !== null ? UI.status(h.lulus ? 'Lulus' : 'Tidak Lulus') : UI.status('Menunggu Koreksi')) + '<span class="chip">' + ikon('cekb', 14) + h.terjawab + '/' + h.jumlah + ' terjawab</span></div>' +
-        '<div class="grid g3 stack-xs">' + [['Nilai PG', h.nilaiPG], ['Nilai Esai', h.nilaiEsai], ['Nilai Akhir', h.nilaiAkhir]].map(x => '<div class="metric"><div class="over">' + x[0] + '</div><div class="v">' + (x[1] === null ? '<span class="small muted">—</span>' : F.n(x[1])) + '</div></div>').join('') + '</div></div></div></div>';
+        '<text x="80" y="110" text-anchor="middle" style="font-size:9px;letter-spacing:.1em;fill:#6F6A5F">' + (v === null ? 'KOREKSI ESAI' : smt ? 'NILAI SEMENTARA' : 'NILAI AKHIR') + '</text></svg>' +
+        '<div class="grow col"><div><div class="over">' + esc(h.paket) + '</div><h2 class="mt-s">' + (v === null || smt ? 'Menunggu koreksi guru' : h.lulus ? 'Selamat, Anda lulus!' : 'Belum mencapai KKM') + '</h2>' +
+        '<p class="muted">' + (v === null ? 'Nilai pilihan ganda sudah dihitung. Nilai akhir final setelah jawaban esai dikoreksi.' : smt ? 'Nilai akhir masih sementara: esai yang belum dikoreksi dihitung 0. Nilai berubah setelah guru selesai mengoreksi. KKM ' + h.kkm + '.' : 'KKM ' + h.kkm + ' · Diselesaikan ' + F.tglJam(h.selesai)) + '</p></div>' +
+        '<div class="row wrap">' + (v !== null && !smt ? UI.status(h.lulus ? 'Lulus' : 'Tidak Lulus') : UI.status('Menunggu Koreksi')) + '<span class="chip">' + ikon('cekb', 14) + h.terjawab + '/' + h.jumlah + ' terjawab</span></div>' +
+        '<div class="grid g3 stack-xs">' + [['Nilai PG', h.nilaiPG], ['Nilai Esai' + (smt ? ' (sementara)' : ''), h.nilaiEsai], ['Nilai Akhir' + (smt ? ' (sementara)' : ''), h.nilaiAkhir]].map(x => '<div class="metric"><div class="over">' + x[0] + '</div><div class="v">' + (x[1] === null ? '<span class="small muted">—</span>' : F.n(x[1])) + '</div></div>').join('') + '</div></div></div></div>';
     }
     const r = d ? d.riwayat : [];
     el.innerHTML = '<div class="page-h"><div><div class="over">Rapor CBT</div><h1>Hasil &amp; Nilai</h1></div></div><div class="col gap-l">' + utama +
       (r.length ? '<div class="grid g-split"><div class="card"><div class="card-h"><h3>' + ikon('naik') + 'Tren Nilai</h3></div>' + Grafik.garis({ nilai: r.filter(x => x.nilai !== null).map(x => x.nilai), label: r.filter(x => x.nilai !== null).map(x => x.mapel), kkm: d.kkm }) + '</div>' +
-        '<div class="card"><div class="card-h"><h3>' + ikon('daftar') + 'Riwayat Ujian</h3></div>' + r.slice().reverse().map(x => '<div class="list-item"><div class="grow"><b class="small">' + esc(x.paket) + '</b><div class="tiny muted">' + esc(x.mapel) + ' · ' + F.tgl(x.selesai) + '</div></div>' + (x.nilai !== null ? '<b class="mono">' + F.n(x.nilai) + '</b>' + UI.status(x.lulus ? 'Lulus' : 'Remedial') : UI.status(x.status)) + '</div>').join('') + '</div></div>' : '') + '</div>';
+        '<div class="card"><div class="card-h"><h3>' + ikon('daftar') + 'Riwayat Ujian</h3></div>' + r.slice().reverse().map(x => '<div class="list-item"><div class="grow"><b class="small">' + esc(x.paket) + '</b><div class="tiny muted">' + esc(x.mapel) + ' · ' + F.tgl(x.selesai) + '</div></div>' + (x.nilai !== null ? '<b class="mono">' + F.n(x.nilai) + '</b>' + Siswa.lencana(x) : UI.status(x.status)) + '</div>').join('') + '</div></div>' : '') + '</div>';
     void ujian;
   };
   Promise.all([API.call('s.hasil', {}).then(j => j.success ? j.data : null).catch(() => null), Siswa.data ? Promise.resolve(Siswa.data) : API.call('s.dashboard', {}).then(j => j.success ? j.data : null)])

@@ -370,10 +370,10 @@ const Ujian = {
     Lokal.del(s.sesi); this.keluarLayarPenuh(); API.tandaiBasi();
     const h = d.hasil, el = $('#konten');
     const nilai = h && h.nilaiAkhir !== null && h.nilaiAkhir !== undefined;
-    el.innerHTML = '<div class="auth"><div class="auth-card lock-screen" style="max-width:520px"><div class="big ' + (nilai ? (h.lulus ? 'teal' : 'warn') : 'teal') + '">' + ikon('cekb', 40) + '</div>' +
+    el.innerHTML = '<div class="auth"><div class="auth-card lock-screen" style="max-width:520px"><div class="big ' + (nilai && !h.menunggu ? (h.lulus ? 'teal' : 'warn') : 'teal') + '">' + ikon('cekb', 40) + '</div>' +
       '<h1 style="font-size:24px">Jawaban berhasil dikirim</h1><p class="muted">' + esc(s.paket.nama) + ' · ' + esc(s.paket.mapel) + '</p>' +
-      (h ? '<div class="grid g3 mt mb">' + [['Nilai PG', h.nilaiPG], ['Nilai Esai', h.nilaiEsai], ['Nilai Akhir', h.nilaiAkhir]].map(x => '<div class="metric"><div class="over">' + x[0] + '</div><div class="v">' + (x[1] === null || x[1] === undefined ? '<span class="small muted">—</span>' : F.n(x[1])) + '</div></div>').join('') + '</div>' +
-        (h.menunggu ? '<div class="alert warn">' + ikon('jam') + '<div class="grow"><b>Menunggu koreksi guru</b><p>Nilai akhir final setelah jawaban esai dikoreksi.</p></div></div>' : nilai ? '<div class="alert ' + (h.lulus ? 'ok' : 'bad') + '">' + ikon(h.lulus ? 'medali' : 'info') + '<div class="grow"><b>' + (h.lulus ? 'Lulus' : 'Belum mencapai KKM') + '</b><p>KKM ' + h.kkm + '</p></div></div>' : '')
+      (h ? '<div class="grid g3 mt mb">' + [['Nilai PG', h.nilaiPG], ['Nilai Esai' + (h.menunggu ? ' (sementara)' : ''), h.nilaiEsai], ['Nilai Akhir' + (h.menunggu ? ' (sementara)' : ''), h.nilaiAkhir]].map(x => '<div class="metric"><div class="over">' + x[0] + '</div><div class="v">' + (x[1] === null || x[1] === undefined ? '<span class="small muted">—</span>' : F.n(x[1])) + '</div></div>').join('') + '</div>' +
+        (h.menunggu ? '<div class="alert warn">' + ikon('jam') + '<div class="grow"><b>Menunggu koreksi guru</b><p>Nilai akhir di atas masih sementara (esai yang belum dikoreksi dihitung 0). Nilai final setelah semua esai dikoreksi.</p></div></div>' : nilai ? '<div class="alert ' + (h.lulus ? 'ok' : 'bad') + '">' + ikon(h.lulus ? 'medali' : 'info') + '<div class="grow"><b>' + (h.lulus ? 'Lulus' : 'Belum mencapai KKM') + '</b><p>KKM ' + h.kkm + '</p></div></div>' : '')
         : '<div class="alert soft mt">' + ikon('info') + '<div class="grow">Nilai akan diumumkan oleh guru.</div></div>') +
       '<a class="btn primary lg block mt" href="#/s/hasil">' + ikon('medali') + 'Lihat Hasil &amp; Riwayat</a></div></div>';
   },

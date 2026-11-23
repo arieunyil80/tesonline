@@ -524,7 +524,7 @@ App.daftar('g/monitor', { judul: 'Monitoring', crumb: 'Integritas pengerjaan & d
       { k: '_urut', label: 'Nama siswa', nilai: r => (r.status === 'Terkunci' ? 0 : r.status === 'Berjalan' ? 1 : 2) + r.nama, render: r => '<b' + (r.status === 'Terkunci' ? ' style="color:var(--bad)"' : '') + '>' + esc(r.nama) + '</b><div class="tiny muted mono">' + esc(r.nis) + ' · ' + esc(r.kelas) + '</div>' },
       { k: 'status', label: 'Status sesi', render: r => UI.status(r.status === 'Berjalan' ? 'Mengerjakan' : r.status) },
       { k: 'terjawab', label: 'Progres', render: r => { const p = r.jumlah ? Math.round(r.terjawab / r.jumlah * 100) : 0; return '<div style="min-width:130px"><div class="row between tiny"><span class="mono">' + r.terjawab + '/' + r.jumlah + ' soal</span><span class="mono">' + p + '%</span></div><div class="bar ' + (r.status === 'Terkunci' ? 'bad' : '') + '"><i style="width:' + p + '%"></i></div></div>'; } },
-      { k: 'sisa', label: 'Sisa waktu', render: r => r.sisa === null ? (r.nilai !== null ? '<span class="small">Nilai <b class="mono">' + F.n(r.nilai) + '</b></span>' : '<span class="tiny muted">—</span>') : '<span class="mono bold" data-sisa="' + (Date.now() + r.sisa * 1000) + '" style="font-size:15px;color:' + (r.sisa < 300 ? 'var(--bad)' : 'var(--text)') + '">' + F.durasi(r.sisa) + '</span>' + (r.status === 'Terkunci' ? '<div class="tiny muted">Timer tetap berjalan</div>' : '') },
+      { k: 'sisa', label: 'Sisa waktu', render: r => r.sisa === null ? (r.nilai !== null ? '<span class="small">Nilai' + (r.sementara ? ' sementara' : '') + ' <b class="mono">' + F.n(r.nilai) + '</b></span>' : '<span class="tiny muted">—</span>') : '<span class="mono bold" data-sisa="' + (Date.now() + r.sisa * 1000) + '" style="font-size:15px;color:' + (r.sisa < 300 ? 'var(--bad)' : 'var(--text)') + '">' + F.durasi(r.sisa) + '</span>' + (r.status === 'Terkunci' ? '<div class="tiny muted">Timer tetap berjalan</div>' : '') },
       { k: 'online', label: 'Koneksi', render: r => r.sisa === null ? '<span class="tiny muted">—</span>' : (r.online ? '<span class="badge ok"><i class="dot"></i>Online</span>' : '<span class="badge warn">' + ikon('wifioff', 12) + 'Offline</span>') + '<div class="tiny muted">' + (r.terakhir ? F.relatif(r.terakhir) : '') + '</div>' },
       { k: 'nPel', label: 'Log pelanggaran', render: r => r.nPel ? '<span class="badge ' + (r.status === 'Terkunci' ? 'solid-bad' : 'warn') + '">' + ikon('segitiga', 12) + r.nPel + '/' + r.maks + '</span>' : (r.sesi ? '<span class="badge ok">' + ikon('perisai', 12) + '0 · Tertib</span>' : '<span class="tiny muted">—</span>') },
       { k: '_a', label: 'Aksi pengawas', urut: false, render: r => r.sesi ? '<div class="aksi">' + (r.status === 'Terkunci' ? '<button class="btn primary xs" data-buka="' + esc(r.sesi) + '">' + ikon('buka', 13) + 'Buka Kunci</button>' : '') +
@@ -619,7 +619,7 @@ App.daftar('g/koreksi', { judul: 'Koreksi Esai', crumb: 'Penilaian esai & forens
       { k: 'paket', label: 'Paket ujian', render: r => '<span class="small">' + esc(r.paket) + '</span>' },
       { k: 'kelas', label: 'Kelas' },
       { k: 'analitik', label: 'Analitik pola ketik', render: r => UI.status(r.analitik) + (r.persen !== null && r.persen !== undefined && r.analitik !== '-' ? ' <span class="tiny muted mono">' + F.n(r.persen) + '% ketik</span>' : '') + (r.nPel ? ' <span class="badge warn">' + ikon('segitiga', 11) + r.nPel + '</span>' : '') },
-      { k: 'dinilai', label: 'Dinilai', render: r => '<span class="mono">' + r.dinilai + '/' + r.esai + '</span>' + (r.nilaiAkhir !== null ? ' <span class="tiny muted">→ ' + F.n(r.nilaiAkhir) + '</span>' : '') },
+      { k: 'dinilai', label: 'Dinilai', render: r => '<span class="mono">' + r.dinilai + '/' + r.esai + '</span>' + (r.nilaiAkhir !== null ? ' <span class="tiny muted">→ ' + F.n(r.nilaiAkhir) + (r.status === 'Menunggu Koreksi' ? ' (sementara)' : '') + '</span>' : '') },
       { k: 'selesai', label: 'Waktu selesai', render: r => '<span class="small muted">' + F.relatif(new Date(r.selesai).getTime()) + '</span>' },
       { k: '_a', label: '', urut: false, render: r => '<a class="btn xs ' + (r.analitik === 'Dugaan Tempel' ? 'danger' : r.analitik === 'Mencurigakan' ? 'sand' : r.dinilai < r.esai ? 'primary' : '') + '" href="#/g/koreksi/' + esc(r.sesi) + (paket ? '?paket=' + esc(paket) : '') + '">' + (r.dinilai < r.esai ? 'Koreksi' : 'Tinjau') + ' ' + ikon('pen', 13) + '</a>' }
     ]
@@ -677,15 +677,15 @@ const Koreksi = {
       $$('[data-pre]').forEach(b => b.onclick = () => { sk.value = b.dataset.pre; sk.oninput(); });
       info();
     };
-    const info = () => { const n = d.esai.filter(e => skor[e.id].s !== '').length; $('#k-info').innerHTML = ikon('pen', 14) + ' ' + n + '/' + d.esai.length + ' esai bernilai · Nilai PG <b class="mono">' + F.n(d.sesi.nilaiPG) + '</b>' + (d.sesi.nilaiAkhir !== '' ? ' · Nilai akhir saat ini <b class="mono">' + F.n(d.sesi.nilaiAkhir) + '</b>' : ''); };
+    const info = () => { const n = d.esai.filter(e => skor[e.id].s !== '').length; $('#k-info').innerHTML = ikon('pen', 14) + ' ' + n + '/' + d.esai.length + ' esai bernilai · Nilai PG <b class="mono">' + F.n(d.sesi.nilaiPG) + '</b>' + (d.sesi.nilaiAkhir !== '' ? ' · Nilai akhir ' + (d.sesi.status === 'Menunggu Koreksi' ? 'sementara' : 'saat ini') + ' <b class="mono">' + F.n(d.sesi.nilaiAkhir) + '</b>' : ''); };
     $$('#tab-esai button').forEach(b => b.onclick = () => { aktif = Number(b.dataset.i); $$('#tab-esai button').forEach(x => x.classList.toggle('on', x === b)); gambar(); });
     gambar(); tandai();
     const simpan = async btn => {
       for (const e of d.esai) { const v = skor[e.id].s; if (v !== '' && (v < 0 || v > e.bobot)) return UI.toast('Skor esai No ' + e.no + ' harus 0–' + e.bobot + '.', 'bad'); }
       await UI.sibuk(btn, async () => {
         const r = await UI.kirim('esai.nilai', { sesi, skor }, { diam: true });
-        UI.toast(r.dinilai === r.total ? 'Tersimpan. Nilai akhir: ' + F.n(r.nilaiAkhir) : 'Tersimpan (' + r.dinilai + '/' + r.total + ' esai bernilai).', 'ok');
-        const t = antri[idx]; if (t) { t.dinilai = r.dinilai; t.nilaiAkhir = r.nilaiAkhir === '' ? null : r.nilaiAkhir; }
+        UI.toast(!r.sementara ? 'Tersimpan. Nilai akhir: ' + F.n(r.nilaiAkhir) : 'Tersimpan (' + r.dinilai + '/' + r.total + ' esai bernilai). Nilai akhir sementara: ' + F.n(r.nilaiAkhir), 'ok');
+        const t = antri[idx]; if (t) { t.dinilai = r.dinilai; t.status = r.status; t.nilaiAkhir = r.nilaiAkhir === '' ? null : r.nilaiAkhir; }
         const berikut = antri.slice(idx + 1).find(x => x.dinilai < x.esai) || antri.find(x => x.dinilai < x.esai && x.sesi !== sesi);
         location.hash = berikut ? '#/g/koreksi/' + berikut.sesi + (paket ? '?paket=' + paket : '') : '#/g/koreksi';
       });
@@ -702,7 +702,7 @@ const Koreksi = {
 App.daftar('g/rekap', { judul: 'Rekap Nilai', crumb: 'Modul evaluasi sumatif', filterMapel: true, render(el, q) {
   let paket = q.paket || '', f = { kelas: '', lulus: '', an: '', hadir: '' }, tabel, data = null;
   el.innerHTML = Hal.header({ over: 'Modul evaluasi sumatif', judul: 'Rekapitulasi Nilai &amp; Evaluasi Hasil Asesmen', sub: 'Nilai ternormalisasi PG &amp; esai, kelulusan KKM, kehadiran, dan integritas ketikan.',
-    aksi: Hal.segarkan() + '<button class="btn" id="b-csv">' + ikon('unduh', 16) + 'CSV</button><button class="btn" id="b-pdf">' + ikon('doc', 16) + 'Unduh PDF</button><button class="btn primary" id="b-xlsx">' + ikon('unduh', 16) + 'Unduh Excel (.xlsx)</button>' }) +
+    aksi: Hal.segarkan() + '<button class="btn" id="b-perbaiki" title="Pulihkan siswa yang tercatat belum mengerjakan & hitung ulang nilai akhir">' + ikon('perisai', 16) + 'Periksa Data</button><button class="btn" id="b-csv">' + ikon('unduh', 16) + 'CSV</button><button class="btn" id="b-pdf">' + ikon('doc', 16) + 'Unduh PDF</button><button class="btn primary" id="b-xlsx">' + ikon('unduh', 16) + 'Unduh Excel (.xlsx)</button>' }) +
     '<div class="card mb"><div class="row between mb"><b>' + ikon('filter', 16) + ' Parameter filter</b><button class="btn ghost xs" id="b-reset">' + ikon('refresh', 12) + 'Reset</button></div><div class="grid g6">' +
     '<div class="field"><label>Paket ujian</label><select class="select" id="f-paket">' + App.opsiPaket(paket, 'Semua paket') + '</select></div>' +
     '<div class="field"><label>Kelas</label><select class="select" id="f-kelas"><option value="">Semua kelas</option>' + App.kelasRef().map(k => '<option>' + esc(k) + '</option>').join('') + '</select></div>' +
@@ -712,15 +712,15 @@ App.daftar('g/rekap', { judul: 'Rekap Nilai', crumb: 'Modul evaluasi sumatif', f
     '<div class="field"><label>Cari</label><input class="input" id="cari" placeholder="Nama / NIS…"></div></div></div>' +
     '<div class="grid g6 mb" id="grafik">' + UI.sk(6, true) + '</div><div class="card"><div class="card-h"><h3>' + ikon('daftar') + ' Lembar Nilai Terintegrasi Siswa</h3><span class="small muted" id="komposisi"></span></div><div id="tbl"></div></div>';
   tabel = Tabel($('#tbl', el), {
-    per: 25, satuan: 'baris', id: r => r.paketId + r.nis, cari: r => r.nama + ' ' + r.nis,
+    per: 25, satuan: 'baris', id: r => r.paketId + r.nis + (r.sesi || ''), cari: r => r.nama + ' ' + r.nis,
     filter: r => (!App.mapel || r.mapelId === App.mapel) && (!f.kelas || r.kelas === f.kelas) && (!f.lulus || (f.lulus === '-' ? r.lulus === null : String(+r.lulus) === f.lulus && r.lulus !== null)) && (!f.an || r.analitik === f.an) && (!f.hadir || r.hadir === f.hadir),
     kelasBaris: r => r.lulus === false ? 'alert' : '',
     kolom: [
-      { k: 'nama', label: 'Siswa & NIS', render: r => '<div class="row gap-s">' + UI.avatar(r.nama, 1) + '<div><b>' + esc(r.nama) + '</b><div class="tiny muted mono">' + esc(r.nis) + '</div></div></div>' },
+      { k: 'nama', label: 'Siswa & NIS', render: r => '<div class="row gap-s">' + UI.avatar(r.nama, 1) + '<div><b>' + esc(r.nama) + '</b><div class="tiny muted mono">' + esc(r.nis) + (r.tanpaToken ? ' · <span class="badge sand" title="Sesi ini tidak tertaut ke token mana pun">tanpa token</span>' : '') + '</div></div></div>' },
       { k: 'kelas', label: 'Kelas' }, { k: 'paket', label: 'Paket', render: r => '<span class="small">' + esc(r.paket) + '</span>' },
       { k: 'nilaiPG', label: 'Nilai PG', kelas: 'tr', render: r => '<span class="mono">' + F.n(r.nilaiPG) + '</span>' },
       { k: 'nilaiEsai', label: 'Nilai Esai', kelas: 'tr', render: r => '<span class="mono">' + F.n(r.nilaiEsai) + '</span>' },
-      { k: 'nilaiAkhir', label: 'Nilai Akhir', kelas: 'tr', render: r => '<b class="mono" style="font-size:15px;color:' + (r.lulus === false ? 'var(--bad)' : 'var(--text)') + '">' + F.n(r.nilaiAkhir) + '</b>' },
+      { k: 'nilaiAkhir', label: 'Nilai Akhir', kelas: 'tr', render: r => '<b class="mono" style="font-size:15px;color:' + (r.lulus === false ? 'var(--bad)' : 'var(--text)') + '">' + F.n(r.nilaiAkhir) + '</b>' + (r.sementara ? '<div class="tiny muted">sementara</div>' : '') },
       { k: 'lulus', label: 'Kelulusan', render: r => r.lulus === null ? UI.status(r.status) : UI.status(r.lulus ? 'Lulus' : 'Remedial') },
       { k: 'analitik', label: 'Analitik esai', render: r => r.analitik ? UI.status(r.analitik) : '<span class="tiny muted">—</span>' },
       { k: 'nPel', label: 'Pelanggaran', render: r => r.nPel ? '<span class="badge warn">' + ikon('segitiga', 11) + r.nPel + '</span>' : (r.sesi ? '<span class="badge ok">0 · Bersih</span>' : '<span class="tiny muted">—</span>') },
@@ -728,7 +728,7 @@ App.daftar('g/rekap', { judul: 'Rekap Nilai', crumb: 'Modul evaluasi sumatif', f
     ]
   });
   const grafik = () => {
-    const rs = tabel.tersaring(), n = rs.filter(r => r.nilaiAkhir !== null), kkm = data.kkm;
+    const rs = tabel.tersaring(), n = rs.filter(r => r.nilaiAkhir !== null && !r.sementara), kkm = data.kkm;   // grafik hanya nilai final
     const perPaket = {}; n.forEach(r => { (perPaket[r.paket] = perPaket[r.paket] || []).push(r.nilaiAkhir); });
     const rata = a => Math.round(a.reduce((x, y) => x + y, 0) / a.length * 10) / 10;
     const ember = [['<60', 0, 60], ['60–69', 60, 70], ['70–79', 70, 80], ['80–89', 80, 90], ['90+', 90, 101]].map(b => ({ l: b[0], v: n.filter(r => r.nilaiAkhir >= b[1] && r.nilaiAkhir < b[2]).length, w: b[1] < kkm ? '#B93A32' : '#0F5561' }));
@@ -750,11 +750,34 @@ App.daftar('g/rekap', { judul: 'Rekap Nilai', crumb: 'Modul evaluasi sumatif', f
   $('#f-paket').onchange = e => App.pergi('g/rekap', { paket: e.target.value });
   $('#b-reset').onclick = () => App.pergi('g/rekap', {});
   Hal.pasangSegar(el, () => API.swr('rekap.data', { paket }, gambar, { force: true, fresh: true }));
-  $('#b-csv').onclick = () => { const rs = tabel.tersaring(); UI.unduhCSV([['NIS', 'Nama', 'Kelas', 'Paket', 'Mapel', 'Nilai PG', 'Nilai Esai', 'Nilai Akhir', 'Keterangan', 'Analitik Esai', 'Pelanggaran', 'Kehadiran']].concat(rs.map(r => [r.nis, r.nama, r.kelas, r.paket, r.mapel, r.nilaiPG, r.nilaiEsai, r.nilaiAkhir, r.lulus === null ? r.status : r.lulus ? 'Tuntas' : 'Remedial', r.analitik, r.nPel, r.hadir])), 'rekap-nilai.csv'); };
+  $('#b-csv').onclick = () => { const rs = tabel.tersaring(); UI.unduhCSV([['NIS', 'Nama', 'Kelas', 'Paket', 'Mapel', 'Nilai PG', 'Nilai Esai', 'Nilai Akhir', 'Keterangan', 'Analitik Esai', 'Pelanggaran', 'Kehadiran']].concat(rs.map(r => [r.nis, r.nama, r.kelas, r.paket, r.mapel, r.nilaiPG, r.nilaiEsai, r.nilaiAkhir, r.sementara ? 'Sementara (menunggu koreksi esai)' : r.lulus === null ? r.status : r.lulus ? 'Tuntas' : 'Remedial', r.analitik, r.nPel, r.hadir])), 'rekap-nilai.csv'); };
   const dok = (fmt, b) => { if (!paket) return UI.toast('Pilih satu paket untuk ekspor resmi Excel/PDF (CSV tersedia untuk semua paket).', 'warn'); UI.sibuk(b, () => Hal.unduhDok('REKAP_NILAI', paket, fmt, f.kelas)); };
   $('#b-xlsx').onclick = e => dok('xlsx', e.currentTarget); $('#b-pdf').onclick = e => dok('pdf', e.currentTarget);
+  $('#b-perbaiki').onclick = e => UI.sibuk(e.currentTarget, () => periksaDataSesi(paket, () => API.swr('rekap.data', { paket }, gambar, { force: true, fresh: true })));
   Hal.muat($('#tbl'), 'rekap.data', { paket }, gambar, { maxAge: 20000 });
 } });
+
+/** Periksa & Perbaiki Data: pindai dulu (tidak menulis apa pun), tampilkan temuan, lalu jalankan bila disetujui */
+async function periksaDataSesi(paket, sesudah) {
+  const d = await UI.kirim('sesi.perbaiki', { paket, jalankan: false }, { diam: true });
+  const daftar = (judul, arr, fmt, lebih) => arr.length ? '<div class="mt"><b class="small">' + judul + ' (' + (arr.length + (lebih || 0)) + ')</b><ul class="small" style="margin:6px 0 0;padding-left:18px;max-height:180px;overflow:auto">' +
+    arr.map(x => '<li>' + fmt(x) + '</li>').join('') + (lebih ? '<li class="muted">… dan ' + lebih + ' lainnya</li>' : '') + '</ul></div>' : '';
+  const perlu = d.tautan.length + d.nilai.length;
+  const isi = '<p class="muted">' + esc(d.ringkas) + '</p>' +
+    (perlu ? '' : '<div class="alert ok">' + ikon('cekb') + '<div class="grow">Data sudah konsisten. Tidak ada yang perlu diperbaiki.</div></div>') +
+    daftar('Siswa yang tautan token → sesinya dipulihkan', d.tautan, x => '<b>' + esc(x.nama) + '</b> · ' + esc(x.paket) + ' — ' + esc(x.ubah) + ' <span class="muted">(sebelumnya ' + esc(x.sebelum) + ')</span>', d.tautanLebih) +
+    daftar('Nilai yang dihitung ulang', d.nilai, x => '<b>' + esc(x.nama) + '</b> · ' + esc(x.paket) + ' — ' + esc(x.sebelum) + ' → <b>' + esc(x.sesudah) + '</b>', d.nilaiLebih) +
+    daftar('Perlu dicek manual: siswa dengan lebih dari satu sesi', d.ganda, x => esc(x.nama) + ' · ' + esc(x.paket) + ' — ' + esc(x.sesi.join(', ')), d.gandaLebih) +
+    daftar('Sesi tanpa token (tetap tampil di rekap)', d.tanpaToken, x => esc(x.nama) + ' · ' + esc(x.paket) + ' — ' + esc(x.sesi) + ' (' + esc(x.status) + ')', d.tanpaTokenLebih) +
+    (d.tanpaId.length ? '<div class="alert warn mt">' + ikon('segitiga') + '<div class="grow">Baris ' + esc(d.tanpaId.join(', ')) + ' di sheet SesiUjian berisi data tetapi kolom ID Sesi kosong. Periksa langsung di Google Sheets.</div></div>' : '') +
+    (d.sisa ? '<p class="small muted mt">Masih ada ' + d.sisa + ' sesi lagi. Jalankan perbaikan sekali lagi setelah ini.</p>' : '') +
+    '<p class="tiny muted mt">Tidak ada baris yang dihapus dan jawaban siswa tidak diubah.</p>';
+  UI.modal({ judul: 'Periksa & Perbaiki Data Nilai', sub: 'Hasil pemindaian — belum ada yang diubah', ikon: 'perisai', ukuran: 'lg', isi,
+    aksi: perlu ? [{ label: 'Tutup', nilai: null }, { label: 'Jalankan perbaikan', kelas: 'primary', ikon: 'cekb', klik: async () => {
+      const r = await UI.kirim('sesi.perbaiki', { paket, jalankan: true }, { diam: true });
+      UI.toast(r.ringkas, 'ok'); if (sesudah) sesudah();
+    } }] : [{ label: 'Tutup', nilai: null }] });
+}
 
 /* =====================================================================
  *  KODE RUANG (TOTP) — layar proyektor

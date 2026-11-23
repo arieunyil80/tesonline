@@ -264,6 +264,7 @@ const App = {
         if (j.success) {
           this.simpanSesi({ token: j.data.token, me: j.data.me, peran: 'siswa' });
           Simpan.set('tkj_pin_terakhir', pin);
+          if (j.data.me.lihatSaja) { UI.toast(j.message || 'Ujian sudah selesai. Anda masuk untuk melihat hasil.', 'ok'); location.hash = '#/s/hasil'; return; }
           location.hash = '#/s/beranda';
           return;
         }

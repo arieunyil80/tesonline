@@ -1,4 +1,4 @@
-# Panduan Instalasi — Tes Online TKJ (UjianKu Pro v1.3)
+# Panduan Instalasi — Tes Online TKJ (UjianKu Pro v1.3.1)
 
 Aplikasi CBT online dengan dua bagian:
 
@@ -47,11 +47,13 @@ Manifest ini mengatur zona waktu Asia/Jakarta, runtime V8, dan izin yang dibutuh
 2. Klik **Tinjau izin**, pilih akun Anda, lalu **Lanjutan → Buka Tes Online TKJ (tidak aman) → Izinkan**. Peringatan ini wajar untuk skrip buatan sendiri.
 3. Buka **Log eksekusi**. Anda akan melihat:
    ```
-   🔑 LOGIN ADMIN AWAL (catat sekarang, hanya tampil sekali)
+   🔑 LOGIN ADMIN AWAL (catat sekarang)
       Username   : admin
       Kata sandi : XXXXXXXXXXXX
    ```
-   **Catat kata sandi ini.** Kata sandi ini tidak disimpan di mana pun dalam bentuk asli.
+   **Catat kata sandi ini.** Kata sandi ini tidak disimpan di mana pun dalam bentuk asli. Kotak ini muncul di tengah log (langkah 6 dari 10), jadi gulir ke atas bila perlu. Baris terakhir log yang menandakan setup tuntas adalah **✅ SETUP SELESAI**.
+
+   Bila setup berhenti dengan galat merah, kata sandi yang sudah tampil di atas galat tetap berlaku. Perbaiki penyebabnya, lalu jalankan `setupAplikasi` sekali lagi. Setup melanjutkan langkah yang belum selesai dan tidak membuat admin atau berkas ganda.
 
 Setup membuat folder Drive **📁 Tes Online TKJ**, berisi spreadsheet database, folder gambar, logo, arsip, dan template dokumen. Setup juga membuat 12 sheet, 4 template dokumen bawaan, rahasia di Script Properties, dan pemicu tiap 5 menit.
 
@@ -145,7 +147,10 @@ Buka situs, lalu klik **Login Guru / Administrator** dan masuk dengan `admin` da
    - **Monitoring:** progres, sisa waktu, status online, dan pelanggaran diperbarui tiap 5 detik. Dari sini Anda bisa membuka kunci (alasan wajib), menambah waktu, mereset perangkat, atau menghentikan sesi.
    - **Kehadiran:** siswa yang ditandai Tidak Hadir/Izin/Sakit otomatis diblokir. Gunakan **Aktifkan Ulang (Susulan)** dengan masa berlaku baru.
 5. **Koreksi Esai:** lihat jawaban, rubrik, dan panel forensik ketikan (diketik vs ditempel, kecepatan, status). Beri skor, lalu klik **Simpan & Lanjut** atau tekan Ctrl+Enter.
-6. **Rekap Nilai:** filter dan grafik. Unduh **Excel/PDF resmi** (Doc Engine) atau CSV.
+   - Esai yang **tidak dijawab** siswa otomatis bernilai **0** (bisa Anda ubah).
+   - Begitu siswa mengirim, **Nilai Akhir langsung terisi** dari PG + Esai. Selama masih ada esai berjawaban yang belum dikoreksi, nilai itu ditandai **sementara** (esai yang belum dikoreksi dihitung 0) dan statusnya *Menunggu Koreksi*. Setelah semua esai diberi skor, nilai menjadi final dan status *Selesai*.
+6. **Rekap Nilai:** filter dan grafik. Unduh **Excel/PDF resmi** (Doc Engine) atau CSV. Nilai sementara diberi tanda *sementara* dan belum dihitung lulus/remedial maupun di grafik.
+   - Tombol **Periksa Data** memindai dulu tanpa mengubah apa pun, lalu menampilkan siswa yang perlu dipulihkan (sudah mengerjakan tetapi tercatat belum) dan nilai yang perlu dihitung ulang. Klik **Jalankan perbaikan** untuk menerapkannya. Tidak ada baris yang dihapus.
 7. **Dokumen:** Berita Acara, Daftar Hadir, Daftar Token, dan Rekap Nilai. Salinan setiap dokumen tersimpan di folder **Arsip Dokumen** di Drive.
 
 ## Bagian E — Rahasia & keamanan (Script Properties)
@@ -179,6 +184,30 @@ Semua nilai di bawah ini **dibuat otomatis** oleh `setupAplikasi` dan tersimpan 
    **Jangan** membuat "Deployment baru", karena URL `/exec` akan berubah.
 3. Jalankan `setupAplikasi` sekali bila ada sheet atau kolom baru. Fungsi ini hanya menambah, tidak menghapus.
 
+### F1. Pembaruan v1.3.1 (koreksi nilai & tautan sesi)
+
+Yang diperbaiki:
+
+| Masalah | Perbaikan |
+|---|---|
+| Siswa sudah mengerjakan (nilai tampil di akunnya), tetapi di Sheets/tampilan guru tercatat belum mengerjakan | Nomor baris di sheet kini selalu dicocokkan dengan ID sebelum ditulis, sehingga data tidak salah baris walau sheet diurutkan atau barisnya dihapus langsung di Google Sheets. Tampilan guru juga mencari sesi lewat ID Token dan ID Siswa, bukan hanya kolom *ID Sesi* di TokenSiswa. |
+| Nilai PG dan Esai belum menjadi Nilai Akhir | Nilai Akhir langsung dihitung (sementara bila koreksi esai belum lengkap). Esai kosong otomatis 0. |
+| Siswa tidak bisa melihat nilai setelah token/jadwal habis | Siswa yang sudah menyelesaikan ujian tetap bisa masuk dengan Token PIN yang sama, dari perangkat mana pun, langsung ke halaman **Hasil & Nilai**. Ujian tidak bisa diulang. Token yang diblokir, dinonaktifkan, atau hangus tanpa ujian tetap ditolak. |
+
+Langkah pembaruan:
+
+1. **Backend:** buka editor Apps Script, ganti isi `Kode.gs`, `Ujian.gs`, `Guru.gs`, `Admin.gs`, dan `Dokumen.gs` dengan versi baru (salin seluruh isi, tempel menimpa). Klik **Simpan**.
+2. **Terapkan → Kelola deployment → ✏️ Edit → Versi: Versi baru → Terapkan.** URL `/exec` tetap sama.
+3. **Frontend:** ekstrak ZIP pembaruan, lalu salin isinya ke folder repository Anda (menimpa berkas lama). ZIP ini **tidak** berisi `js/config.js`, jadi URL backend Anda tidak tertimpa. Jalankan dari folder repository:
+   ```bash
+   git add .
+   git commit -m "Pembaruan v1.3.1: nilai akhir & tautan sesi"
+   git push
+   ```
+   Tunggu 1–2 menit, lalu buka situs dengan **Ctrl+Shift+R**.
+4. **Pulihkan data lama:** masuk sebagai Admin → **Rekap Nilai → Periksa Data**. Periksa daftarnya (siswa yang sempat tercatat belum mengerjakan akan muncul di sini), lalu klik **Jalankan perbaikan**. Langkah ini juga menghitung ulang Nilai Akhir semua sesi yang masih *Menunggu Koreksi*.
+   Cara lain: di editor Apps Script pilih fungsi `perbaikiDataSesi`, lalu klik **Jalankan**. Hasilnya tampil di log eksekusi.
+
 ## Bagian G — Pindah dari aplikasi lama
 
 Buka **Pengaturan → Impor & Migrasi Data**, lalu tempel URL spreadsheet lama dan lakukan langkah berikut:
@@ -205,6 +234,7 @@ Teks pengganti mengikuti huruf dan ukuran penanda. Daftar penanda tersedia di ba
 - **Layar penuh di iPhone** tidak didukung browser. Siswa iPhone memakai **Bagikan → Tambahkan ke Layar Utama**. Sensor pindah tab tetap aktif.
 - **Analitik ketikan esai adalah indikator, bukan bukti mutlak.** Keputusan akhir ada pada guru.
 - **Kuota pemicu:** pemicu 5 menit memakai sekitar 10–15 menit runtime per hari, di bawah batas akun Gmail (±90 menit per hari).
+- **Mengedit sheet langsung:** aplikasi kini tahan terhadap pengurutan atau penghapusan baris di Google Sheets. Meski begitu, hindari mengurutkan atau menghapus baris di sheet **SesiUjian** dan **TokenSiswa** saat ujian berlangsung. Bila perlu merapikan, lakukan setelah ujian selesai, lalu klik **⟳ Segarkan**.
 
 ## Bagian J — Kendala umum
 
@@ -215,17 +245,22 @@ Teks pengganti mengikuti huruf dan ukuran penanda. Daftar penanda tersedia di ba
 | Situs 404 | Folder yang di-push salah | Pastikan `index.html` ada di root repository |
 | Tampilan tanpa gaya (CSS hilang) | Diunggah lewat web GitHub | Push ulang lewat terminal |
 | "Sheet ... tidak ditemukan" | Sheet terhapus atau terganti nama | Jalankan `setupAplikasi` |
+| Setup berhenti: `Cannot read properties of null (reading 'setAlignment')` di `Dokumen.gs` | `Dokumen.gs` versi awal (sudah diperbaiki) | Tempel ulang `Dokumen.gs` dan `Setup.gs` terbaru, simpan, lalu jalankan `setupAplikasi` lagi |
+| Tidak pernah melihat sandi admin | Setup sebelumnya terhenti sebelum sandi tampil | Jalankan `setupAplikasi` lagi (sandi dibuat ulang otomatis selama admin belum pernah login), atau jalankan `resetSandiAdmin` |
 | Dokumen gagal dibuat | Template terhapus | **Dokumen → Kembalikan bawaan** |
 | Siswa: "Token dipakai di perangkat lain" | Siswa berganti HP | **Monitoring → ⚙ → Reset perangkat** |
 | Sesi siswa terkunci | Batas pelanggaran tercapai | **Monitoring → Buka Kunci** (alasan wajib) |
 | Data yang diubah langsung di Sheets belum tampil | Cache server | Klik tombol **⟳ Segarkan** di halaman terkait |
+| Siswa sudah mengerjakan tetapi di tampilan guru tercatat belum | Tautan token ↔ sesi terputus (versi sebelum 1.3.1) | **Rekap Nilai → Periksa Data → Jalankan perbaikan** |
+| Nilai Akhir bertanda *sementara* | Masih ada esai yang belum dikoreksi | Selesaikan koreksi di **Koreksi Esai**; nilai menjadi final otomatis |
+| Periksa Data melaporkan "siswa dengan lebih dari satu sesi" | Sesi ganda dari data lama | Buka sheet SesiUjian, cek kedua ID sesi tersebut. Rekap memakai sesi yang sedang berjalan, atau yang dimulai paling akhir |
 
 ---
 
 ## Hasil pengujian sebelum diserahkan
 
-- **Backend (simulator Apps Script di Node):** 52 skenario lulus. Skenario mencakup setup ulang yang idempoten, login, kunci PIN 3× per 60 detik per perangkat, undian soal tanpa bocoran kunci, autosave, pelanggaran dan penguncian, buka kunci, Kode Ruang dengan saklar global dan override paket, nilai ternormalisasi, koreksi esai, token hangus oleh pemicu, impor, migrasi, Doc Engine, dan hak akses.
+- **Backend (simulator Apps Script di Node):** 64 skenario lulus. Simulator meniru tipe kembalian API Google Docs yang asli (mis. `Paragraph.setText` tidak bisa disambung, `getParent()` wajib di-cast). Skenario mencakup setup ulang yang idempoten, setup yang gagal di tengah lalu dijalankan ulang, login, kunci PIN 3× per 60 detik per perangkat, undian soal tanpa bocoran kunci, autosave, pelanggaran dan penguncian, buka kunci, Kode Ruang dengan saklar global dan override paket, nilai ternormalisasi, koreksi esai, token hangus oleh pemicu, impor, migrasi, Doc Engine, hak akses, serta koreksi v1.3.1: esai kosong bernilai 0, nilai akhir sementara, sheet yang diurutkan/disisipi baris saat ujian berlangsung (data tidak salah baris), tautan token yang hilang (tampilan guru tetap benar dan bisa dipulihkan), dan login lihat-hasil setelah token serta jadwal habis.
 - **Uji beban (simulator):** 40 siswa serentak. Satu autosave = **0 baca + 1 tulis** sheet (3 sel), dan monitoring guru = 0–2 baca per pembaruan. Tidak ada galat.
-- **Browser (Chrome headless):** 42 skenario lulus di desktop 1440 px dan ponsel 375 px. Skenario mencakup login, ujian, peringatan, layar terkunci, mode offline, kirim jawaban, seluruh menu guru dan admin, cetak kartu, dan tanpa galat JavaScript.
+- **Browser (Chrome headless):** 45 skenario lulus di desktop 1440 px dan ponsel 375 px. Skenario mencakup login, ujian, peringatan, layar terkunci, mode offline, kirim jawaban, label nilai sementara, login lihat-hasil dengan token terpakai, Periksa Data di Rekap, seluruh menu guru dan admin, cetak kartu, dan tanpa galat JavaScript.
 
 Pengujian dilakukan di simulator. Uji ulang singkat di akun Google Anda tetap diperlukan: jalankan `setupAplikasi` + `isiDataContoh`, lakukan satu ujian contoh dari HP, lalu buat satu dokumen PDF.
